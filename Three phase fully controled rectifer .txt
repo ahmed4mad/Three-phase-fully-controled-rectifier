@@ -1,0 +1,178 @@
+  int cc=0;
+  int SW=0;
+  int mm=0;
+  int ADR=0;
+  int ff=0;
+
+  /////////////////////////////////////////////
+
+void InitTimer0(){   // 90us
+  OPTION_REG         = 0x88;
+  TMR0                 = 76;
+  INTCON       = 0xF0;      //        a0 can be     b0
+}
+
+void InitTimer1(){    //100us
+  T1CON         = 0x01;
+  TMR1IF_bit         = 0;
+  TMR1H         = 0xFF;
+  TMR1L         = 0x38;
+  TMR1IE_bit        = 1;
+
+}
+
+void InitTimer2(){
+  T2CON	 = 0x35;
+  PR2		 = 237;
+  TMR2IE_bit	 = 1;
+
+}
+ ///////////////////////////////////////////////
+void PulseTrain1(){
+if (ff==1) {
+ff=0;
+     SW=1;
+     mm=0;
+     InitTimer1();
+     InitTimer2();
+     }
+             }
+ void PulseTrain2(){
+if (ff==2) {
+ff=0;
+     SW=2;
+     mm=0;
+     InitTimer1();
+     InitTimer2();
+     }
+             }
+ void PulseTrain3(){
+if (ff==3) {
+ff=0;
+     SW=3;
+     mm=0;
+     InitTimer1();
+     InitTimer2();
+     }
+             }
+void PulseTrain4(){
+if (ff==4) {
+ff=0;
+     SW=4;
+     mm=0;
+     InitTimer1();
+     InitTimer2();
+     }
+             }
+ void PulseTrain5(){
+if (ff==5) {
+ff=0;
+     SW=5;
+     mm=0;
+     InitTimer1();
+     InitTimer2();
+     }
+             }
+  void PulseTrain6(){
+if (ff==6) {
+ff=0;
+     SW=6;
+     mm=0;
+     InitTimer1(); // don't intiate timer 2
+     }
+             }
+
+///////////////////////////////////////////////
+
+void Interrupt(){
+if (INTCON.INTF){          //INTF flag raised, so external interrupt occured
+   INTCON.INTF = 0;
+   ADR=ADC_Read(2);
+   ADR=(ADR+14)/14;
+   cc=0;
+   InitTimer0();
+   }
+
+else if (TMR0IF_bit){  // ADC timer
+    TMR0IF_bit         = 0;
+    TMR0               = 76;
+    INTCON.TMR0IE      = 1;
+    cc++;
+   if (cc==ADR) {INTCON = 0xD0; ff=1; PulseTrain1(); }
+
+  }
+else if (TMR1IF_bit){   //train timer
+    TMR1IF_bit = 0;
+    TMR1H         = 0xFF;
+    TMR1L         = 0x38;
+
+    switch  (SW){
+    case 1:
+     mm++;
+    portd.b1=~portd.B1;
+    InitTimer1();
+    if    (mm==5) {portd.b1=0;  T1CON= 0x00;}
+    break;
+
+    case 2:
+    mm++;
+    portd.b2=~portd.B2;
+    InitTimer1();
+    if    (mm==5) {portd.b2=0;  T1CON= 0x00;}
+    break;
+
+    case 3:
+    mm++;
+    portd.b3=~portd.B3;
+    InitTimer1();
+    if    (mm==5) {portd.b3=0;  T1CON= 0x00;}
+    break;
+
+    case 4:
+    mm++;
+    portd.b4=~portd.B4;
+    InitTimer1();
+    if    (mm==5) {portd.b4=0;  T1CON= 0x00;}
+    break;
+
+    case 5:
+    mm++;
+    portd.b5=~portd.B5;
+    InitTimer1();
+    if    (mm==5) {portd.b5=0;  T1CON= 0x00;}
+    break;
+
+    case 6:
+    mm++;
+    portd.b6=~portd.B6;
+    InitTimer1();
+    if    (mm==5) {portd.b6=0;  T1CON= 0x00; SW=0;}
+    break;
+
+    }}
+else if (TMR2IF_bit){            //60 deg
+    TMR2IF_bit = 0;
+    switch (SW) {
+    case 1: T2CON= 0x00; ff=2; PulseTrain2(); break;
+    case 2: T2CON= 0x00; ff=3; PulseTrain3(); break;
+    case 3: T2CON= 0x00; ff=4; PulseTrain4(); break;
+    case 4: T2CON= 0x00; ff=5; PulseTrain5(); break;
+    case 5: T2CON= 0x00; ff=6; PulseTrain6(); break;
+  }
+ }
+}
+////////////////////////////////////////////////////
+
+void main() {
+     PORTB = 0x00;
+     TRISB = 0xFF;         //RB0 input for interrupt
+     PORTA = 0x00;
+     TRISA = 0xFF;        //Make all PORTA inputs
+     PORTD = 0x00;
+     TRISD = 0x00;       //PORTD all output
+     PORTC = 0x00;
+     TRISC = 0x00;       //PORTC all output
+
+    INTCON         = 0xD0;
+     OPTION_REG.INTEDG = 0;      //interrupt on falling edge
+}
